@@ -45,7 +45,7 @@ export default function FunnelIQLogo({ size = 32, showText = false, className = 
         <circle cx="31.5" cy="18" r="2" fill="white" opacity="0.7" />
       </svg>
       {showText && (
-        <span className="text-lg font-bold tracking-tight text-foreground">
+        <span className="text-sm font-bold tracking-tight text-foreground">
           Funnel<span className="text-primary">IQ</span>
         </span>
       )}

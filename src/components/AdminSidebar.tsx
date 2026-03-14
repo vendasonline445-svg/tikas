@@ -211,7 +211,7 @@ export default function AdminSidebar({
         <button
           onClick={() => toggleGroup(group.key)}
           className={cn(
-            "w-full h-8 rounded-md flex items-center gap-2.5 px-2.5 text-[13px] font-medium transition-all duration-150 group",
+            "w-full h-7 rounded-md flex items-center gap-2.5 px-2.5 text-[13px] font-medium transition-all duration-150 group",
             isActive
               ? "text-foreground"
               : "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground"
@@ -240,7 +240,7 @@ export default function AdminSidebar({
                 key={item.tab}
                 onClick={() => handleTabClick(item.tab, group.key)}
                 className={cn(
-                  "w-full h-7 rounded-md flex items-center gap-2 px-2 text-xs transition-all duration-150",
+                  "w-full h-6 rounded-md flex items-center gap-2 px-2 text-xs transition-all duration-150",
                   currentTab === item.tab
                     ? "bg-primary/10 text-primary font-medium"
                     : "text-muted-foreground hover:bg-foreground/[0.03] hover:text-foreground"
@@ -266,8 +266,8 @@ export default function AdminSidebar({
         "flex items-center h-12 border-b border-border/60 shrink-0",
         collapsed ? "justify-center px-1" : "px-3 justify-between"
       )}>
-        {!collapsed && <FunnelIQLogo size={22} showText />}
-        {collapsed && <FunnelIQLogo size={22} />}
+        {!collapsed && <FunnelIQLogo size={18} showText />}
+        {collapsed && <FunnelIQLogo size={18} />}
         <button
           onClick={onToggleCollapse}
           className={cn(
