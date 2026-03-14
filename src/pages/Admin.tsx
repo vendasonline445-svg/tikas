@@ -1,24 +1,25 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfDay, endOfDay, subDays, startOfMonth } from "date-fns";
 
-import AdminTikTokTab from "@/components/AdminTikTokTab";
-import AdminTrackingHub from "@/components/AdminTrackingHub";
 import SettingsTracking from "@/components/settings/SettingsTracking";
 import SettingsPixels from "@/components/settings/SettingsPixels";
 import SettingsIntegrations from "@/components/settings/SettingsIntegrations";
 import SettingsAdmin from "@/components/settings/SettingsAdmin";
 
 import AdminDashboard, { type PeriodKey } from "@/components/AdminDashboard";
-import AdminAIAssistant from "@/components/AdminAIAssistant";
-import AdminClientHub from "@/components/AdminClientHub";
-import AdminAdsHub from "@/components/AdminAdsHub";
-import AdminAnalyticsHub from "@/components/AdminAnalyticsHub";
-import AdminFunnelHealthTester from "@/components/AdminFunnelHealthTester";
-import AdminLiveActivity from "@/components/AdminLiveActivity";
-import AdminSuperHub from "@/components/AdminSuperHub";
 import AdminSidebar, { type AdminTab } from "@/components/AdminSidebar";
+
+const AdminTikTokTab = lazy(() => import("@/components/AdminTikTokTab"));
+const AdminTrackingHub = lazy(() => import("@/components/AdminTrackingHub"));
+const AdminAIAssistant = lazy(() => import("@/components/AdminAIAssistant"));
+const AdminClientHub = lazy(() => import("@/components/AdminClientHub"));
+const AdminAdsHub = lazy(() => import("@/components/AdminAdsHub"));
+const AdminAnalyticsHub = lazy(() => import("@/components/AdminAnalyticsHub"));
+const AdminFunnelHealthTester = lazy(() => import("@/components/AdminFunnelHealthTester"));
+const AdminLiveActivity = lazy(() => import("@/components/AdminLiveActivity"));
+const AdminSuperHub = lazy(() => import("@/components/AdminSuperHub"));
 import FunnelIQLogo from "@/components/FunnelIQLogo";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/hooks/use-auth";
@@ -438,6 +439,11 @@ function AdminContent() {
 
       <main className="flex-1 min-w-0 overflow-auto">
         <div className="max-w-[1400px] mx-auto p-4">
+        <Suspense fallback={
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-500 border-t-transparent" />
+          </div>
+        }>
         {tab === "superadmin" && (
           <AdminSuperHub />
         )}
@@ -901,6 +907,7 @@ function AdminContent() {
             )}
           </div>
         )}
+        </Suspense>
         </div>
       </main>
     </div>
