@@ -18,7 +18,6 @@ import AdminAnalyticsHub from "@/components/AdminAnalyticsHub";
 import AdminFunnelHealthTester from "@/components/AdminFunnelHealthTester";
 import AdminLiveActivity from "@/components/AdminLiveActivity";
 import AdminSuperHub from "@/components/AdminSuperHub";
-import AdminTrackingConfig from "@/components/AdminTrackingConfig";
 import AdminSidebar, { type AdminTab } from "@/components/AdminSidebar";
 import FunnelIQLogo from "@/components/FunnelIQLogo";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
