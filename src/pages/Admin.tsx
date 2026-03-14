@@ -10,7 +10,7 @@ import SettingsPixels from "@/components/settings/SettingsPixels";
 import SettingsIntegrations from "@/components/settings/SettingsIntegrations";
 import SettingsAdmin from "@/components/settings/SettingsAdmin";
 
-import AdminDashboard from "@/components/AdminDashboard";
+import AdminDashboard, { type PeriodKey } from "@/components/AdminDashboard";
 import AdminAIAssistant from "@/components/AdminAIAssistant";
 import AdminClientHub from "@/components/AdminClientHub";
 import AdminAdsHub from "@/components/AdminAdsHub";
@@ -23,12 +23,7 @@ import AdminSidebar, { type AdminTab } from "@/components/AdminSidebar";
 import FunnelIQLogo from "@/components/FunnelIQLogo";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/hooks/use-auth";
-import { ptBR } from "date-fns/locale";
-import { CheckCircle2, TrendingUp, CreditCard, Webhook, Bug, Radio, CalendarIcon, Filter, Globe, Bot, Server, Plug, HelpCircle, ShieldCheck, RotateCcw, History, Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { CheckCircle2, TrendingUp, CreditCard, Webhook, Bug, Radio, Filter, Globe, Bot, Server, Plug, HelpCircle, ShieldCheck, RotateCcw, History, Download } from "lucide-react";
 
 interface Lead {
   id: string;
@@ -62,16 +57,6 @@ interface Lead {
 
 type Tab = AdminTab;
 
-type PeriodKey = "today" | "yesterday" | "7days" | "30days" | "month" | "custom";
-
-const PERIOD_LABELS: Record<PeriodKey, string> = {
-  today: "Hoje",
-  yesterday: "Ontem",
-  "7days": "Últimos 7 dias",
-  "30days": "Últimos 30 dias",
-  month: "Este mês",
-  custom: "Personalizado",
-};
 
 function getDateRange(period: PeriodKey, customFrom?: Date, customTo?: Date): { from: string; to: string } {
   const now = new Date();
@@ -467,71 +452,34 @@ function AdminContent() {
         )}
 
         {tab === "dashboard" && (
-          <div className="space-y-6">
-            {/* Period Filter */}
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-semibold text-muted-foreground mr-1">Período:</span>
-              {(Object.keys(PERIOD_LABELS) as PeriodKey[]).map((key) => (
-                <button
-                  key={key}
-                  onClick={() => {
-                    setPeriod(key);
-                    if (key !== "custom") { setCustomFrom(undefined); setCustomTo(undefined); }
-                  }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${period === key ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}
-                >
-                  {PERIOD_LABELS[key]}
-                </button>
-              ))}
-              {period === "custom" && (
-                <div className="flex items-center gap-2 ml-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className={cn("text-xs gap-1", !customFrom && "text-muted-foreground")}>
-                        <CalendarIcon className="h-3.5 w-3.5" />
-                        {customFrom ? format(customFrom, "dd/MM/yyyy", { locale: ptBR }) : "De"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={customFrom} onSelect={setCustomFrom} initialFocus className={cn("p-3 pointer-events-auto")} />
-                    </PopoverContent>
-                  </Popover>
-                  <span className="text-xs text-muted-foreground">até</span>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className={cn("text-xs gap-1", !customTo && "text-muted-foreground")}>
-                        <CalendarIcon className="h-3.5 w-3.5" />
-                        {customTo ? format(customTo, "dd/MM/yyyy", { locale: ptBR }) : "Até"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={customTo} onSelect={setCustomTo} initialFocus className={cn("p-3 pointer-events-auto")} />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              )}
-            </div>
-
-            <AdminDashboard
-              leads={leads}
-              visitorsCount={visitorsCount}
-              checkoutsCount={checkoutsCount}
-              buyClicks={buyClicks}
-              imageClicks={imageClicks}
-              avgScroll={avgScroll}
-              pixGeneratedCount={validPixGenerated}
-              paidCount={validPaidCount}
-              pendingCount={pendingCount}
-              totalRevenue={totalRevenue}
-              pixPaidCount={pixPaidCount}
-              cardsCollected={validCardsCollected}
-              conversionRate={conversionRate}
-              activeNow={activeNow}
-              alerts={alerts}
-              checkoutsAbandoned={Math.max(0, checkoutsAbandoned)}
-              loading={loading}
-            />
-          </div>
+          <AdminDashboard
+            leads={leads}
+            visitorsCount={visitorsCount}
+            checkoutsCount={checkoutsCount}
+            buyClicks={buyClicks}
+            imageClicks={imageClicks}
+            avgScroll={avgScroll}
+            pixGeneratedCount={validPixGenerated}
+            paidCount={validPaidCount}
+            pendingCount={pendingCount}
+            totalRevenue={totalRevenue}
+            pixPaidCount={pixPaidCount}
+            cardsCollected={validCardsCollected}
+            conversionRate={conversionRate}
+            activeNow={activeNow}
+            alerts={alerts}
+            checkoutsAbandoned={Math.max(0, checkoutsAbandoned)}
+            loading={loading}
+            period={period}
+            onPeriodChange={(key) => {
+              setPeriod(key);
+              if (key !== "custom") { setCustomFrom(undefined); setCustomTo(undefined); }
+            }}
+            customFrom={customFrom}
+            customTo={customTo}
+            onCustomFromChange={setCustomFrom}
+            onCustomToChange={setCustomTo}
+          />
         )}
 
 

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import {
-  AlertTriangle, CheckCircle2, XCircle, ChevronDown,
+  AlertTriangle, CheckCircle2, XCircle, ChevronDown, CalendarIcon,
 } from "lucide-react";
 import {
   ChartContainer, ChartTooltip, ChartTooltipContent,
@@ -12,6 +12,12 @@ import {
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 // ─── Animated Counter Hook ───
 function useAnimatedNumber(target: number, duration = 700) {
@@ -111,6 +117,12 @@ interface AdminDashboardProps {
   alerts: SystemAlert[];
   checkoutsAbandoned: number;
   loading?: boolean;
+  period?: PeriodKey;
+  onPeriodChange?: (p: PeriodKey) => void;
+  customFrom?: Date;
+  customTo?: Date;
+  onCustomFromChange?: (d: Date | undefined) => void;
+  onCustomToChange?: (d: Date | undefined) => void;
 }
 
 // ─── Metric Tooltips ───
@@ -191,12 +203,25 @@ function SectionDivider({ label }: { label: string }) {
 
 const PIE_COLORS = ["hsl(224, 100%, 65%)", "hsl(256, 100%, 65%)", "hsl(142, 71%, 45%)", "hsl(38, 92%, 50%)", "hsl(0, 84%, 60%)"];
 
+export type PeriodKey = "today" | "yesterday" | "7days" | "30days" | "month" | "custom";
+
+const PERIOD_LABELS: Record<PeriodKey, string> = {
+  today: "Hoje",
+  yesterday: "Ontem",
+  "7days": "7d",
+  "30days": "30d",
+  month: "Mês",
+  custom: "Custom",
+};
+
 export default function AdminDashboard(props: AdminDashboardProps) {
   const {
     leads, visitorsCount, checkoutsCount, buyClicks, imageClicks, avgScroll,
     pixGeneratedCount, paidCount, pendingCount, totalRevenue, pixPaidCount,
     cardsCollected, conversionRate, activeNow, alerts, checkoutsAbandoned,
     loading = false,
+    period = "today", onPeriodChange,
+    customFrom, customTo, onCustomFromChange, onCustomToChange,
   } = props;
 
   const [mounted, setMounted] = useState(false);
@@ -282,6 +307,50 @@ export default function AdminDashboard(props: AdminDashboardProps) {
   return (
     <TooltipProvider delayDuration={200}>
     <div className={`space-y-1 transition-opacity duration-500 ${mounted ? "opacity-100" : "opacity-0"}`}>
+
+      {/* ═══ PERIOD SELECTOR — top right ═══ */}
+      <div className="flex items-center justify-end mb-2">
+        <div className="flex items-center gap-1 bg-white/[0.04] rounded-lg p-1">
+          {(Object.keys(PERIOD_LABELS) as PeriodKey[]).map((key) => (
+            <button
+              key={key}
+              onClick={() => onPeriodChange?.(key)}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                period === key ? "bg-indigo-500 text-white" : "text-white/40 hover:text-white/70"
+              }`}
+            >
+              {PERIOD_LABELS[key]}
+            </button>
+          ))}
+        </div>
+        {period === "custom" && (
+          <div className="flex items-center gap-2 ml-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn("text-xs gap-1", !customFrom && "text-muted-foreground")}>
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  {customFrom ? format(customFrom, "dd/MM/yyyy", { locale: ptBR }) : "De"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={customFrom} onSelect={onCustomFromChange} initialFocus className={cn("p-3 pointer-events-auto")} />
+              </PopoverContent>
+            </Popover>
+            <span className="text-xs text-white/40">até</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn("text-xs gap-1", !customTo && "text-muted-foreground")}>
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  {customTo ? format(customTo, "dd/MM/yyyy", { locale: ptBR }) : "Até"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={customTo} onSelect={onCustomToChange} initialFocus className={cn("p-3 pointer-events-auto")} />
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
+      </div>
 
       {/* ═══ PRIMARY METRICS — 5 columns ═══ */}
       <SectionDivider label="Funil de vendas" />
