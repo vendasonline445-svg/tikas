@@ -1,23 +1,30 @@
 import { useEffect } from "react";
 import { CheckCircle, Package, Truck, Mail } from "lucide-react";
-import { trackTikTokEvent } from "@/lib/tiktok-tracking";
 import { trackPageViewOnce } from "@/utils/track-event";
 
-const Obrigado = () => {
+interface ThankYouPageProps {
+  type: "default" | "upsell";
+}
+
+const ThankYouPage = ({ type }: ThankYouPageProps) => {
   const orderDataStr = sessionStorage.getItem("orderData");
   const orderData = orderDataStr ? JSON.parse(orderDataStr) : null;
-  const pixDataStr = sessionStorage.getItem("pixData");
-  const pixData = pixDataStr ? JSON.parse(pixDataStr) : null;
   const customerName = orderData?.customer?.name || "Cliente";
   const customerEmail = orderData?.customer?.email || "";
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    trackPageViewOnce("/obrigado");
+    if (type === "default") {
+      trackPageViewOnce("/obrigado");
+      // Purchase already fired in PixPayment — skip duplicate here
+      console.log("[TikTok] Obrigado page loaded — Purchase already sent from PixPayment");
+    }
+  }, [type]);
 
-    // Purchase already fired in PixPayment — skip duplicate here
-    console.log("[TikTok] Obrigado page loaded — Purchase already sent from PixPayment");
-  }, []);
+  const subtitle =
+    type === "default"
+      ? "Seu pedido foi confirmado com sucesso e já está sendo processado pela nossa equipe."
+      : "Sua taxa foi confirmada com sucesso. Seu pedido será liberado hoje mesmo!";
 
   return (
     <div className="min-h-screen bg-background">
@@ -38,7 +45,7 @@ const Obrigado = () => {
             Obrigado, {customerName}! 🎉
           </h1>
           <p className="text-muted-foreground text-sm leading-relaxed max-w-[320px]">
-            Seu pedido foi confirmado com sucesso e já está sendo processado pela nossa equipe.
+            {subtitle}
           </p>
         </div>
 
@@ -56,25 +63,51 @@ const Obrigado = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full" style={{ background: "rgba(234,179,8,0.12)" }}>
-                <Package className="h-4.5 w-4.5 text-[#ca8a04]" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">Preparando envio</p>
-                <p className="text-[11px] text-muted-foreground">Seu pedido está sendo separado</p>
-              </div>
-            </div>
+            {type === "default" ? (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full" style={{ background: "rgba(234,179,8,0.12)" }}>
+                    <Package className="h-4.5 w-4.5 text-[#ca8a04]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Preparando envio</p>
+                    <p className="text-[11px] text-muted-foreground">Seu pedido está sendo separado</p>
+                  </div>
+                </div>
 
-            <div className="flex items-center gap-3 opacity-40">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
-                <Truck className="h-4.5 w-4.5 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">Em transporte</p>
-                <p className="text-[11px] text-muted-foreground">Aguardando despacho</p>
-              </div>
-            </div>
+                <div className="flex items-center gap-3 opacity-40">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
+                    <Truck className="h-4.5 w-4.5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Em transporte</p>
+                    <p className="text-[11px] text-muted-foreground">Aguardando despacho</p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full" style={{ background: "rgba(34,197,94,0.12)" }}>
+                    <Package className="h-4.5 w-4.5 text-[#16a34a]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Pedido liberado</p>
+                    <p className="text-[11px] text-muted-foreground">Seu pedido será enviado hoje mesmo</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full" style={{ background: "rgba(234,179,8,0.12)" }}>
+                    <Truck className="h-4.5 w-4.5 text-[#ca8a04]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Em preparação para envio</p>
+                    <p className="text-[11px] text-muted-foreground">Será despachado em breve</p>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -108,4 +141,4 @@ const Obrigado = () => {
   );
 };
 
-export default Obrigado;
+export default ThankYouPage;

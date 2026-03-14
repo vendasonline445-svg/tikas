@@ -12,8 +12,7 @@ import NotFound from "./pages/NotFound";
 import Index from "./pages/Index";
 import Checkout from "./pages/Checkout";
 import PixPayment from "./pages/PixPayment";
-import Obrigado from "./pages/Obrigado";
-import ObrigadoUpsell from "./pages/ObrigadoUpsell";
+import ThankYouPage from "./pages/ThankYouPage";
 import Upsell1 from "./pages/Upsell1";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import TermosDeUso from "./pages/TermosDeUso";
@@ -40,8 +39,8 @@ const App = () => (
               <Route path="/loja-admin" element={<StoreAdmin />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/pix" element={<PixPayment />} />
-              <Route path="/obrigado" element={<Obrigado />} />
-              <Route path="/obrigado-upsell" element={<ObrigadoUpsell />} />
+              <Route path="/obrigado" element={<ThankYouPage type="default" />} />
+              <Route path="/obrigado-upsell" element={<ThankYouPage type="upsell" />} />
               <Route path="/upsell1" element={<Upsell1 />} />
               <Route path="/taxa-alfandega" element={<Upsell1 />} />
               <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
