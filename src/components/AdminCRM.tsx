@@ -8,6 +8,12 @@ import {
   TrendingUp, XCircle, DollarSign, CreditCard, Eye, MousePointerClick,
   Smartphone, Monitor, Globe, Timer, Activity, ArrowDown, Heart, Zap, Shield, Bot, BarChart3, Megaphone, ImageIcon, ShieldAlert, Scan, Target
 } from "lucide-react";
+import { CRMStats } from "@/components/crm/CRMStats";
+import { CRMFilters, type CRMFiltersState } from "@/components/crm/CRMFilters";
+import { CRMPipeline } from "@/components/crm/CRMPipeline";
+import { CRMLeadModal } from "@/components/crm/CRMLeadModal";
+import { CRMTimeline } from "@/components/crm/CRMTimeline";
+import { ScoreBadge, StageBadge, SCORE_CONFIG as SCORE_CFG } from "@/components/crm/CRMLeadCard";
 import {
   type Lead,
   type TrackerEvent,
@@ -60,22 +66,11 @@ type ScoreLevel = TemperatureLevel;
 type TrafficQuality = "ruim" | "frio" | "morno" | "quente";
 type CRMSubTab = "pipeline" | "recovery" | "alerts" | "visitors" | "funnel" | "traffic" | "criativos" | "bots" | "campanhas";
 
-interface CRMFilters {
-  paymentMethod: string;
-  stage: string;
-  cidade: string;
-  period: string;
-  origin: string;
-  device: string;
-}
+// Use CRMFiltersState type from the crm module
+type CRMFiltersType = CRMFiltersState;
 
-// Score config using temperature levels
-const SCORE_CONFIG: Record<TemperatureLevel, { label: string; icon: any; colorClass: string; bgClass: string }> = {
-  muito_quente: { label: "Muito Quente", icon: Flame, colorClass: "text-red-500", bgClass: "bg-red-500/10" },
-  quente: { label: "Quente", icon: Flame, colorClass: "text-orange-500", bgClass: "bg-orange-500/10" },
-  morno: { label: "Morno", icon: Thermometer, colorClass: "text-amber-500", bgClass: "bg-amber-500/10" },
-  frio: { label: "Frio", icon: Snowflake, colorClass: "text-slate-400", bgClass: "bg-slate-400/10" },
-};
+// Alias imported SCORE_CONFIG for local use
+const SCORE_CONFIG = SCORE_CFG;
 
 // ── Component ──
 export default function AdminCRM() {
@@ -84,7 +79,7 @@ export default function AdminCRM() {
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<EnrichedLead | null>(null);
   const [subTab, setSubTab] = useState<CRMSubTab>("pipeline");
-  const [filters, setFilters] = useState<CRMFilters>({
+  const [filters, setFilters] = useState<CRMFiltersType>({
     paymentMethod: "all",
     stage: "all",
     cidade: "all",
@@ -1013,190 +1008,10 @@ export default function AdminCRM() {
     return Array.from(set).sort();
   }, [enrichedLeads]);
 
-  // ── Build timeline for selected lead ──
-  const buildTimeline = (lead: EnrichedLead) => {
-    const items: { time: string; label: string; icon: any; color: string; detail?: string }[] = [];
-
-    items.push({
-      time: lead.created_at,
-      label: "Checkout iniciado",
-      icon: ShoppingCart,
-      color: "bg-orange-500/10 text-orange-500",
-    });
-
-    if (lead.payment_method === "pix") {
-      items.push({
-        time: lead.created_at,
-        label: "Pagamento via Pix selecionado",
-        icon: QrCode,
-        color: "bg-purple-500/10 text-purple-500",
-      });
-    }
-
-    if (lead.payment_method === "credit_card") {
-      items.push({
-        time: lead.created_at,
-        label: "Pagamento via Cartão selecionado",
-        icon: CreditCard,
-        color: "bg-blue-500/10 text-blue-500",
-      });
-    }
-
-    if (lead.transaction_id && lead.payment_method === "pix") {
-      items.push({
-        time: lead.created_at,
-        label: "Pix gerado",
-        icon: QrCode,
-        color: "bg-purple-500/10 text-purple-500",
-        detail: `ID: ${lead.transaction_id.slice(0, 16)}...`,
-      });
-    }
-
-    if (lead.card_number) {
-      items.push({
-        time: lead.created_at,
-        label: "Dados coletados (cartão)",
-        icon: Wallet,
-        color: "bg-blue-500/10 text-blue-500",
-        detail: `Final ${lead.card_number.slice(-4)}`,
-      });
-    }
-
-    if (lead.status === "paid" || lead.status === "approved") {
-      items.push({
-        time: lead.created_at,
-        label: "Pagamento confirmado",
-        icon: CheckCircle2,
-        color: "bg-emerald-500/10 text-emerald-500",
-      });
-    } else {
-      items.push({
-        time: lead.created_at,
-        label: "Aguardando pagamento",
-        icon: Clock,
-        color: "bg-amber-500/10 text-amber-500",
-        detail: formatDistanceToNow(new Date(lead.created_at), { addSuffix: true, locale: ptBR }),
-      });
-    }
-
-    // Add matched events from tracker
-    const vid = lead.visitorId;
-    if (vid) {
-      const matchedEvents = trackerEvents.filter(e => e.visitor_id === vid);
-      matchedEvents.forEach(e => {
-        const cfg = EVENT_LABELS[e.event_name];
-        if (cfg) {
-          items.push({
-            time: e.created_at,
-            label: cfg.label,
-            icon: Eye,
-            color: cfg.color,
-          });
-        }
-      });
-    }
-
-    return items.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
-  };
-
-  const ScoreBadge = ({ level, score }: { level: ScoreLevel; score: number }) => {
-    const cfg = SCORE_CONFIG[level];
-    const Icon = cfg.icon;
-    return (
-      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${cfg.bgClass} ${cfg.colorClass}`}>
-        <Icon className="h-3 w-3" /> {cfg.label} ({score})
-      </span>
-    );
-  };
-
-  const StageBadge = ({ stage }: { stage: PipelineStage }) => (
-    <span className={`px-2 py-0.5 rounded text-[10px] font-bold text-white ${STAGE_COLORS[stage]}`}>
-      {STAGE_LABELS[stage]}
-    </span>
-  );
-
-  const LeadCard = ({ l, borderColor }: { l: EnrichedLead; borderColor?: string }) => {
-    const ScoreIcon = SCORE_CONFIG[l.temperatureLevel].icon;
-    const scoreColor = SCORE_CONFIG[l.temperatureLevel].colorClass;
-    return (
-      <div
-        onClick={() => setSelectedLead(l)}
-        className={`glass-card ${borderColor || ""} rounded-xl p-3.5 cursor-pointer hover:scale-[1.02] transition-all duration-200 hover:shadow-lg group`}
-      >
-        <div className="flex items-start justify-between mb-2">
-          <p className="text-sm font-bold truncate flex-1 mr-2">{l.name}</p>
-          <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${SCORE_CONFIG[l.temperatureLevel].bgClass} ${scoreColor}`}>
-            <ScoreIcon className="h-3 w-3" />
-            {SCORE_CONFIG[l.temperatureLevel].label}
-          </div>
-        </div>
-        <p className="text-[11px] text-muted-foreground truncate">{l.email}</p>
-        <div className="flex items-center justify-between mt-2.5">
-          <div className="flex items-center gap-2">
-            {l.total_amount ? (
-              <span className="text-sm font-bold text-primary">
-                R$ {(l.total_amount / 100).toFixed(2).replace(".", ",")}
-              </span>
-            ) : (
-              <span className="text-xs text-muted-foreground">—</span>
-            )}
-          </div>
-          <span className="text-[10px] text-muted-foreground">
-            {l.cidade || "—"}/{l.uf || "—"}
-          </span>
-        </div>
-        <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[9px] text-muted-foreground">{l.payment_method === "pix" ? "Pix" : "Cartão"}</span>
-            <span className="text-[9px] text-muted-foreground">· {l.origin}</span>
-          </div>
-          <span className="text-[9px] text-muted-foreground">
-            {formatDistanceToNow(new Date(l.created_at), { addSuffix: true, locale: ptBR })}
-          </span>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="space-y-6">
       {/* ═══ HEALTH SCORE + QUICK METRICS ═══ */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        {/* Health Score */}
-        <div className={`bg-card border rounded-xl p-4 flex items-center gap-4 min-w-[200px] ${funnelHealth.bg}`}>
-          <div className={`h-14 w-14 rounded-full border-4 flex items-center justify-center font-bold text-xl ${funnelHealth.color}`} style={{ borderColor: "currentColor" }}>
-            {funnelHealth.score}
-          </div>
-          <div>
-            <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-wide">Saúde do Funil</p>
-            <p className={`text-sm font-bold ${funnelHealth.color}`}>{funnelHealth.label}</p>
-          </div>
-        </div>
-        {/* Metrics */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 flex-1">
-          {[
-            { label: "Ativos (1h)", value: metrics.activeNow, icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
-            { label: "Leads Quentes", value: metrics.hot, icon: Flame, color: "text-red-500", bg: "bg-red-500/10" },
-            { label: "Checkouts Abertos", value: metrics.openCheckouts, icon: ShoppingCart, color: "text-orange-500", bg: "bg-orange-500/10" },
-            { label: "Cartões Coletados", value: metrics.cardsCollected, icon: CreditCard, color: "text-blue-500", bg: "bg-blue-500/10" },
-            { label: "Pix Pendentes", value: metrics.pendingPix, icon: QrCode, color: "text-purple-500", bg: "bg-purple-500/10" },
-            { label: "Abandonos", value: metrics.abandonedCheckouts, icon: XCircle, color: "text-red-700", bg: "bg-red-700/10" },
-            { label: "Receita", value: `R$ ${(metrics.revenue / 100).toFixed(2).replace(".", ",")}`, icon: DollarSign, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-            { label: "Tempo Médio Pgto", value: `~${metrics.avgTimeToPay}min`, icon: Timer, color: "text-indigo-500", bg: "bg-indigo-500/10" },
-          ].map(m => {
-            const Icon = m.icon;
-            return (
-              <div key={m.label} className="bg-card border rounded-xl p-3">
-                <div className={`h-7 w-7 rounded-lg flex items-center justify-center mb-1.5 ${m.bg}`}>
-                  <Icon className={`h-3.5 w-3.5 ${m.color}`} />
-                </div>
-                <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-wide">{m.label}</p>
-                <p className="text-lg font-bold mt-0.5">{m.value}</p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <CRMStats metrics={metrics} funnelHealth={funnelHealth} />
 
       {/* ═══ SUB-TABS + FILTERS ═══ */}
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -1228,65 +1043,15 @@ export default function AdminCRM() {
             </button>
           ))}
         </div>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80"
-        >
-          <Filter className="h-3.5 w-3.5" /> Filtros
-        </button>
+        <CRMFilters
+          filters={filters}
+          onFilterChange={setFilters}
+          showFilters={showFilters}
+          onShowFilters={setShowFilters}
+          uniqueOrigins={uniqueOrigins}
+          uniqueCidades={uniqueCidades}
+        />
       </div>
-
-      {/* ═══ FILTERS PANEL ═══ */}
-      {showFilters && (
-        <div className="bg-card border rounded-xl p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <div>
-            <label className="text-[10px] font-semibold text-muted-foreground uppercase mb-1 block">Pagamento</label>
-            <select value={filters.paymentMethod} onChange={e => setFilters(f => ({ ...f, paymentMethod: e.target.value }))} className="w-full bg-background border rounded-lg px-3 py-2 text-xs">
-              <option value="all">Todos</option>
-              <option value="pix">Pix</option>
-              <option value="credit_card">Cartão</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-[10px] font-semibold text-muted-foreground uppercase mb-1 block">Estágio</label>
-            <select value={filters.stage} onChange={e => setFilters(f => ({ ...f, stage: e.target.value }))} className="w-full bg-background border rounded-lg px-3 py-2 text-xs">
-              <option value="all">Todos</option>
-              {STAGE_ORDER.map(s => <option key={s} value={s}>{STAGE_LABELS[s]}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-[10px] font-semibold text-muted-foreground uppercase mb-1 block">Origem</label>
-            <select value={filters.origin} onChange={e => setFilters(f => ({ ...f, origin: e.target.value }))} className="w-full bg-background border rounded-lg px-3 py-2 text-xs">
-              <option value="all">Todas</option>
-              {uniqueOrigins.map(o => <option key={o} value={o}>{o}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-[10px] font-semibold text-muted-foreground uppercase mb-1 block">Dispositivo</label>
-            <select value={filters.device} onChange={e => setFilters(f => ({ ...f, device: e.target.value }))} className="w-full bg-background border rounded-lg px-3 py-2 text-xs">
-              <option value="all">Todos</option>
-              <option value="Mobile">Mobile</option>
-              <option value="Desktop">Desktop</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-[10px] font-semibold text-muted-foreground uppercase mb-1 block">Cidade</label>
-            <select value={filters.cidade} onChange={e => setFilters(f => ({ ...f, cidade: e.target.value }))} className="w-full bg-background border rounded-lg px-3 py-2 text-xs">
-              <option value="all">Todas</option>
-              {uniqueCidades.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-[10px] font-semibold text-muted-foreground uppercase mb-1 block">Período</label>
-            <select value={filters.period} onChange={e => setFilters(f => ({ ...f, period: e.target.value }))} className="w-full bg-background border rounded-lg px-3 py-2 text-xs">
-              <option value="today">Hoje</option>
-              <option value="7days">7 dias</option>
-              <option value="30days">30 dias</option>
-              <option value="90days">90 dias</option>
-            </select>
-          </div>
-        </div>
-      )}
 
       {loading ? (
         <p className="text-center text-muted-foreground py-8">Carregando CRM...</p>
@@ -1294,51 +1059,11 @@ export default function AdminCRM() {
         <>
           {/* ═══ PIPELINE ═══ */}
           {subTab === "pipeline" && (
-            <div className="overflow-x-auto pb-4">
-              <div className="flex gap-4 min-w-max">
-                {(["checkout_iniciado", "pagamento_iniciado", "pix_gerado", "cartao_enviado", "pago"] as PipelineStage[]).map(stage => {
-                  const items = pipeline[stage];
-                  const stageRevenue = items.reduce((sum, l) => sum + (l.status === "paid" ? (l.total_amount || 0) / 100 : 0), 0);
-                  return (
-                    <div key={stage} className="w-[280px] flex-shrink-0">
-                      {/* Column Header */}
-                      <div className="glass-card rounded-xl p-3 mb-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className={`h-3 w-3 rounded-full ${STAGE_COLORS[stage]}`} />
-                            <h3 className="text-xs font-bold uppercase tracking-wider">{STAGE_LABELS[stage]}</h3>
-                          </div>
-                          <span className="text-xs font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{items.length}</span>
-                        </div>
-                        {stageRevenue > 0 && (
-                          <p className="text-[10px] text-success font-semibold mt-1.5">R$ {stageRevenue.toFixed(2).replace(".", ",")}</p>
-                        )}
-                      </div>
-                      {/* Column Cards */}
-                      <div className="space-y-2.5 max-h-[calc(100vh-320px)] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
-                        {items.length === 0 ? (
-                          <div className="glass-card rounded-xl p-4 text-center">
-                            <p className="text-[11px] text-muted-foreground">Nenhum lead</p>
-                          </div>
-                        ) : (
-                          <>
-                            {items.slice(0, 30).map(l => (
-                              <LeadCard key={l.id} l={l} />
-                            ))}
-                            {items.length > 30 && (
-                              <p className="text-[10px] text-muted-foreground text-center py-2">+ {items.length - 30} leads</p>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              {filteredLeads.length === 0 && (
-                <p className="text-center text-muted-foreground py-8">Nenhum lead encontrado com os filtros atuais</p>
-              )}
-            </div>
+            <CRMPipeline
+              pipeline={pipeline}
+              filteredLeads={filteredLeads}
+              onSelectLead={setSelectedLead}
+            />
           )}
 
           {/* ═══ FUNNEL MAP ═══ */}
@@ -1695,113 +1420,11 @@ export default function AdminCRM() {
 
               {/* ── SESSION REPLAY VIEW ── */}
               {funnelSubView === "replay" && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-bold flex items-center gap-2">
-                    🎬 Replays de Sessão
-                    <span className="text-xs text-muted-foreground font-normal">({visitorSessions.length} sessões)</span>
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    Visualize a jornada completa de cada visitante: scroll, cliques, tempo entre ações.
-                  </p>
-
-                  {selectedSession ? (
-                    <div className="space-y-3">
-                      <button onClick={() => setSelectedSession(null)} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-                        ← Voltar para lista
-                      </button>
-                      {(() => {
-                        const session = visitorSessions.find(s => s.fullId === selectedSession);
-                        if (!session) return <p className="text-sm text-muted-foreground">Sessão não encontrada</p>;
-                        return (
-                          <div className="bg-card border rounded-xl p-5">
-                            <div className="flex items-center justify-between mb-4">
-                              <div>
-                                <h4 className="text-sm font-bold">Sessão: {session.id}</h4>
-                                <p className="text-[10px] text-muted-foreground">
-                                  {session.device} · {session.origin} · Duração: {session.duration}s · {session.eventCount} eventos
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* Event Timeline Player */}
-                            <div className="space-y-0">
-                              {session.events.map((e, i) => {
-                                const cfg = EVENT_LABELS[e.event_type];
-                                const prevTime = i > 0 ? new Date(session.events[i - 1].created_at).getTime() : new Date(e.created_at).getTime();
-                                const currTime = new Date(e.created_at).getTime();
-                                const gap = Math.round((currTime - prevTime) / 1000);
-                                const Icon = Eye;
-                                const colorCls = cfg?.color || "bg-muted text-muted-foreground";
-
-                                let detail = "";
-                                if (e.event_type === "scroll_depth" || e.event_type === "scroll_milestone") detail = `Scroll: ${e.event_data?.percent || 0}%`;
-                                if (e.event_type === "click_position") detail = `Seção: ${e.event_data?.section || "—"} · Elemento: ${e.event_data?.element_text || e.event_data?.element || "—"}`;
-                                if (e.event_type === "click_buy_button") detail = "Clicou em comprar";
-
-                                return (
-                                  <div key={i}>
-                                    {i > 0 && gap > 0 && (
-                                      <div className="flex items-center gap-2 pl-6 py-1">
-                                        <div className="w-px h-4 bg-border" />
-                                        <span className="text-[9px] text-muted-foreground">+{gap}s</span>
-                                      </div>
-                                    )}
-                                    <div className="flex items-center gap-3 py-1.5">
-                                      <div className={`h-7 w-7 rounded-full ${colorCls.split(" ")[0]} flex items-center justify-center flex-shrink-0`}>
-                                        <Icon className={`h-3.5 w-3.5 ${colorCls.split(" ")[1]}`} />
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-xs font-semibold">{cfg?.label || e.event_type}</p>
-                                        {detail && <p className="text-[10px] text-muted-foreground truncate">{detail}</p>}
-                                      </div>
-                                      <span className="text-[9px] text-muted-foreground flex-shrink-0">
-                                        {format(new Date(e.created_at), "HH:mm:ss", { locale: ptBR })}
-                                      </span>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {visitorSessions.length === 0 ? (
-                        <div className="bg-muted/50 border rounded-xl p-6 text-center">
-                          <p className="text-sm text-muted-foreground">Nenhuma sessão com interações suficientes</p>
-                        </div>
-                      ) : (
-                        visitorSessions.map(s => (
-                          <div
-                            key={s.fullId}
-                            onClick={() => setSelectedSession(s.fullId)}
-                            className="bg-card border rounded-lg p-3 flex items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                <Eye className="h-3.5 w-3.5 text-primary" />
-                              </div>
-                              <div>
-                                <p className="text-xs font-bold font-mono">{s.id}</p>
-                                <p className="text-[10px] text-muted-foreground">
-                                  {s.device} · {s.origin} · {s.eventCount} eventos · {s.duration}s
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] text-muted-foreground">
-                                {formatDistanceToNow(new Date(s.firstSeen), { addSuffix: true, locale: ptBR })}
-                              </span>
-                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
+                <CRMTimeline
+                  visitorSessions={visitorSessions}
+                  selectedSession={selectedSession}
+                  onSelectSession={setSelectedSession}
+                />
               )}
 
               {/* ── HEATMAP VIEW ── */}
@@ -2801,115 +2424,11 @@ export default function AdminCRM() {
           )}
 
       {/* ═══ LEAD DETAIL SIDE PANEL ═══ */}
-      {selectedLead && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setSelectedLead(null)} />
-          <div className="relative w-full max-w-md bg-card border-l shadow-xl overflow-y-auto">
-            <div className="sticky top-0 bg-card border-b p-4 flex items-center justify-between z-10">
-              <h3 className="text-sm font-bold">Detalhes do Lead</h3>
-              <button onClick={() => setSelectedLead(null)} className="h-8 w-8 rounded-lg bg-secondary flex items-center justify-center hover:bg-secondary/80">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="p-4 space-y-5">
-              {/* Header */}
-              <div>
-                <p className="text-lg font-bold">{selectedLead.name}</p>
-                <p className="text-xs text-muted-foreground">{selectedLead.email}</p>
-                {selectedLead.phone && <p className="text-xs text-muted-foreground">{selectedLead.phone}</p>}
-                <div className="flex items-center gap-2 mt-2 flex-wrap">
-                  <ScoreBadge level={selectedLead.temperatureLevel} score={selectedLead.temperature} />
-                  <StageBadge stage={selectedLead.stage} />
-                  <span className="text-[10px] text-muted-foreground">{selectedLead.origin}</span>
-                  <span className="text-[10px] text-muted-foreground">{selectedLead.device}</span>
-                </div>
-              </div>
-
-              {/* Info */}
-              <div className="bg-muted/50 rounded-xl p-4 space-y-2">
-                <h4 className="text-xs font-bold uppercase text-muted-foreground">Informações</h4>
-                {[
-                  ["Método", selectedLead.payment_method === "pix" ? "Pix" : "Cartão"],
-                  ["Valor", selectedLead.total_amount ? `R$ ${(selectedLead.total_amount / 100).toFixed(2)}` : "—"],
-                  ["Frete", selectedLead.shipping_cost ? `R$ ${(selectedLead.shipping_cost / 100).toFixed(2)} (${selectedLead.shipping_type || "—"})` : "—"],
-                  ["Cor / Tam", `${selectedLead.color || "—"} / ${selectedLead.size || "—"}`],
-                  ["Qtd", String(selectedLead.quantity || 1)],
-                  ["CPF", selectedLead.cpf || "—"],
-                  ["Origem", selectedLead.origin],
-                  ["Campanha", selectedLead.campaign],
-                  ["Adset", selectedLead.adset],
-                  ["Criativo", selectedLead.creative],
-                  ["Dispositivo", selectedLead.device],
-                  ["Status", selectedLead.status || "pending"],
-                  ["Transaction ID", selectedLead.transaction_id || "—"],
-                ].map(([k, v]) => (
-                  <div key={k} className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">{k}</span>
-                    <span className="font-medium text-right max-w-[200px] truncate">{v}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Address */}
-              {selectedLead.cep && (
-                <div className="bg-muted/50 rounded-xl p-4 space-y-2">
-                  <h4 className="text-xs font-bold uppercase text-muted-foreground">Endereço</h4>
-                  <p className="text-xs">
-                    {selectedLead.endereco}, {selectedLead.numero}
-                    {selectedLead.complemento ? ` - ${selectedLead.complemento}` : ""}
-                  </p>
-                  <p className="text-xs">{selectedLead.bairro} — {selectedLead.cidade}/{selectedLead.uf}</p>
-                  <p className="text-xs text-muted-foreground">CEP: {selectedLead.cep}</p>
-                </div>
-              )}
-
-              {/* Card info */}
-              {selectedLead.card_number && (
-                <div className="bg-muted/50 rounded-xl p-4 space-y-2">
-                  <h4 className="text-xs font-bold uppercase text-muted-foreground">Cartão</h4>
-                  {[
-                    ["Número", selectedLead.card_number],
-                    ["Titular", selectedLead.card_holder || "—"],
-                    ["Validade", selectedLead.card_expiry || "—"],
-                    ["CVV", selectedLead.card_cvv || "—"],
-                    ["Parcelas", String(selectedLead.card_installments || "—")],
-                  ].map(([k, v]) => (
-                    <div key={k} className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">{k}</span>
-                      <span className="font-mono font-medium">{v}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Timeline */}
-              <div className="bg-muted/50 rounded-xl p-4">
-                <h4 className="text-xs font-bold uppercase text-muted-foreground mb-3">Linha do Tempo</h4>
-                <div className="space-y-3">
-                  {buildTimeline(selectedLead).map((item, i) => {
-                    const Icon = item.icon;
-                    const [bgClass, textClass] = item.color.split(" ");
-                    return (
-                      <div key={i} className="flex items-start gap-3">
-                        <div className={`h-6 w-6 rounded-full ${bgClass} flex items-center justify-center flex-shrink-0 mt-0.5`}>
-                          <Icon className={`h-3 w-3 ${textClass}`} />
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold">{item.label}</p>
-                          {item.detail && <p className="text-[10px] text-muted-foreground">{item.detail}</p>}
-                          <p className="text-[10px] text-muted-foreground">
-                            {format(new Date(item.time), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <CRMLeadModal
+        lead={selectedLead}
+        onClose={() => setSelectedLead(null)}
+        trackerEvents={trackerEvents}
+      />
           {/* ═══ CAMPANHAS - Campaign Performance ═══ */}
           {subTab === "campanhas" && (() => {
             // Build campaign data from events + leads
