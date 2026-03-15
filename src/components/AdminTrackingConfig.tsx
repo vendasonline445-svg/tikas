@@ -47,25 +47,28 @@ const EMPTY: Partial<TrackingConfig> = {
 };
 
 export default function AdminTrackingConfig() {
-  const { isSuperAdmin } = useAuth();
+  const { isSuperAdmin, profile } = useAuth();
+  const clientId = profile?.client_id;
   const [sites, setSites] = useState<{ site_id: string; name: string | null }[]>([]);
   const [selectedSite, setSelectedSite] = useState<string>('');
   const [config, setConfig] = useState<Partial<TrackingConfig>>(EMPTY);
   const [saving, setSaving] = useState(false);
   const [snippetCopied, setSnippetCopied] = useState(false);
-  const db = supabase as any;
 
   useEffect(() => {
-    db.from('sites').select('site_id, name').eq('active', true)
-      .then(({ data }: any) => {
-        setSites(data ?? []);
-        if (data && data[0]) setSelectedSite(data[0].site_id);
-      });
-  }, []);
+    let query = (supabase as any).from('sites').select('site_id, name').eq('active', true);
+    if (!isSuperAdmin && clientId) {
+      query = query.eq('client_id', clientId);
+    }
+    query.then(({ data }: any) => {
+      setSites(data ?? []);
+      if (data && data[0]) setSelectedSite(data[0].site_id);
+    });
+  }, [isSuperAdmin, clientId]);
 
   useEffect(() => {
     if (!selectedSite) return;
-    db.from('site_tracking_config')
+    (supabase as any).from('site_tracking_config')
       .select('*')
       .eq('site_id', selectedSite)
       .single()
@@ -84,7 +87,7 @@ export default function AdminTrackingConfig() {
 
   async function save() {
     setSaving(true);
-    const { error } = await db
+    const { error } = await (supabase as any)
       .from('site_tracking_config')
       .upsert({ ...config, site_id: selectedSite, updated_at: new Date().toISOString() });
 

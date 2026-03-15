@@ -20,6 +20,7 @@ const AdminAnalyticsHub = lazy(() => import("@/components/AdminAnalyticsHub"));
 const AdminFunnelHealthTester = lazy(() => import("@/components/AdminFunnelHealthTester"));
 const AdminLiveActivity = lazy(() => import("@/components/AdminLiveActivity"));
 const AdminSuperHub = lazy(() => import("@/components/AdminSuperHub"));
+const AdminClientSiteManager = lazy(() => import("@/components/AdminClientSiteManager"));
 import FunnelIQLogo from "@/components/FunnelIQLogo";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/hooks/use-auth";
@@ -446,6 +447,10 @@ function AdminContent() {
         }>
         {tab === "superadmin" && (
           <AdminSuperHub />
+        )}
+
+        {tab === "my-sites" && (
+          <AdminClientSiteManager />
         )}
 
         {tab === "funnel-health" && (

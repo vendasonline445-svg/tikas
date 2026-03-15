@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 
-export type AdminTab = 
+export type AdminTab =
   | "dashboard" | "funnel-health" | "live-activity"
   | "tracking" | "tracking-sessions" | "tracking-clicks" | "tracking-links" | "tracking-debug"
   | "campaigns" | "campaigns-creatives" | "campaigns-performance" | "campaigns-automation" | "campaigns-budgets"
@@ -23,7 +23,8 @@ export type AdminTab =
   | "ai" | "ai-insights"
   | "settings-tracking" | "settings-pixels" | "settings-integrations" | "settings-admin"
   | "clients" | "clients-bc" | "tiktok" | "tracking-pixels" | "tracking-config" | "settings-scripts" | "logs" | "settings-csv"
-  | "superadmin";
+  | "superadmin"
+  | "my-sites";
 
 interface NavItem {
   tab: AdminTab;
@@ -96,6 +97,15 @@ const NAV_GROUPS: NavGroup[] = [
     separator: true,
   },
   {
+    key: "my-sites",
+    label: "Meus Sites",
+    icon: <Globe className="h-[18px] w-[18px]" />,
+    items: [
+      { tab: "my-sites" as AdminTab, label: "Sites & Tracking", icon: <Crosshair className="h-3.5 w-3.5" /> },
+    ],
+    separator: false,
+  },
+  {
     key: "settings",
     label: "Settings",
     icon: <Settings className="h-[18px] w-[18px]" />,
@@ -135,7 +145,7 @@ export default function AdminSidebar({
 
   // Build filtered nav groups based on role
   const filteredGroups = NAV_GROUPS.filter(g => {
-    if (isClient && !["dashboard"].includes(g.key)) return false;
+    if (isClient && !["dashboard", "my-sites"].includes(g.key)) return false;
     return true;
   });
 
