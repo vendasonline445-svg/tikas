@@ -89,8 +89,6 @@ export default function AdminCRM() {
   });
   const [showFilters, setShowFilters] = useState(false);
 
-  const db = supabase as any;
-
   const fetchData = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     const daysMap: Record<string, number> = { today: 0, "7days": 7, "30days": 30, "90days": 90 };
@@ -100,7 +98,7 @@ export default function AdminCRM() {
     // Only fetch from events + checkout_leads (no user_events, no page_views)
     const [leadsRes, eventsRes] = await Promise.all([
       supabase.from("checkout_leads").select("*").gte("created_at", since).order("created_at", { ascending: false }).limit(500),
-      db.from("events").select("*").gte("created_at", since).order("created_at", { ascending: false }).limit(3000),
+      supabase.from("events").select("*").gte("created_at", since).order("created_at", { ascending: false }).limit(3000),
     ]);
 
     setLeads((leadsRes.data as Lead[]) || []);

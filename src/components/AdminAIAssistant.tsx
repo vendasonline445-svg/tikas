@@ -23,7 +23,17 @@ export default function AdminAIAssistant({ visitors, conversions, revenue, total
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [context, setContext] = useState<any>(null);
+  interface FunnelContext {
+    periodo: string;
+    total_eventos: number | null;
+    conversoes: number | null;
+    taxa_conversao: string;
+    eventos_por_tipo: Record<string, number> | undefined;
+    visitantes_dashboard?: number;
+    conversoes_dashboard?: number;
+    receita_dashboard?: number;
+  }
+  const [context, setContext] = useState<FunnelContext | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Load funnel context
@@ -41,7 +51,7 @@ export default function AdminAIAssistant({ visitors, conversions, revenue, total
           .order("created_at", { ascending: false }).limit(100),
       ]);
 
-      const eventCounts = recentEvents?.reduce((acc: any, e: any) => {
+      const eventCounts = recentEvents?.reduce((acc: Record<string, number>, e) => {
         acc[e.event_name] = (acc[e.event_name] || 0) + 1;
         return acc;
       }, {});
@@ -83,7 +93,8 @@ export default function AdminAIAssistant({ visitors, conversions, revenue, total
       if (error) throw error;
 
       setMessages(prev => [...prev, { role: "assistant", content: data.content }]);
-    } catch {
+    } catch (e) {
+      console.error("[AIAssistant] Failed to call ai-assistant edge function:", e);
       setMessages(prev => [...prev, {
         role: "assistant",
         content: "Erro ao conectar com o assistente. Verifique se a ANTHROPIC_API_KEY está configurada nas secrets.",
@@ -101,7 +112,7 @@ export default function AdminAIAssistant({ visitors, conversions, revenue, total
       const timer = setTimeout(() => sendMessage(prompt), 500);
       return () => clearTimeout(timer);
     }
-  }, [mode, context]);
+  }, [mode, context, messages.length, sendMessage]);
 
   const welcomeMessages: Record<Mode, string> = {
     diagnostico: "Analisando seu funil... Identificando gargalos automaticamente.",

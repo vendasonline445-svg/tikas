@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-const SITE_ID = "mesa-dobravel";
+const DEFAULT_SITE_ID = import.meta.env.VITE_SITE_ID ?? "mesa-dobravel";
 
 interface Metricas {
   totalPedidos: number;
@@ -12,7 +12,11 @@ interface Metricas {
   pixGerados: number;
 }
 
-export function FunilMetricas() {
+interface FunilMetricasProps {
+  siteId?: string;
+}
+
+export function FunilMetricas({ siteId = DEFAULT_SITE_ID }: FunilMetricasProps) {
   const [metricas, setMetricas] = useState<Metricas | null>(null);
   const [periodo, setPeriodo] = useState<7 | 30 | 90>(30);
 
@@ -24,7 +28,7 @@ export function FunilMetricas() {
       const { data: leads } = await supabase
         .from("checkout_leads")
         .select("status, total_amount")
-        .eq("site_id", SITE_ID)
+        .eq("site_id", siteId)
         .gte("created_at", desde.toISOString());
 
       if (!leads) return;
@@ -48,7 +52,7 @@ export function FunilMetricas() {
       });
     }
     calcular();
-  }, [periodo]);
+  }, [periodo, siteId]);
 
   const cards = metricas
     ? [

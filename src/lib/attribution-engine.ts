@@ -4,8 +4,6 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 
-const db = supabase as any;
-
 export type AttributionModel = "last_click" | "first_click" | "linear";
 
 interface AttributionInput {
@@ -22,7 +20,7 @@ export async function createMultiModelAttribution(input: AttributionInput) {
 
   try {
     // Get all sessions for this visitor to support different models
-    const { data: sessions } = await db.from("sessions")
+    const { data: sessions } = await supabase.from("sessions")
       .select("session_id, campaign_id, creative_id, created_at")
       .eq("visitor_id", visitorId)
       .order("created_at", { ascending: true });
@@ -33,15 +31,15 @@ export async function createMultiModelAttribution(input: AttributionInput) {
     }
 
     // Find click_id if available
-    const { data: click } = await db.from("clicks")
+    const { data: click } = await supabase.from("clicks")
       .select("id")
       .eq("session_id", sessionId)
       .maybeSingle();
 
     if (model === "last_click") {
       // Use current session (last interaction)
-      const session = sessions.find((s: any) => s.session_id === sessionId) || sessions[sessions.length - 1];
-      await db.from("attributions").insert({
+      const session = sessions.find((s) => s.session_id === sessionId) || sessions[sessions.length - 1];
+      await supabase.from("attributions").insert({
         event_id: eventId,
         event_type: eventType,
         session_id: sessionId,
@@ -54,7 +52,7 @@ export async function createMultiModelAttribution(input: AttributionInput) {
     } else if (model === "first_click") {
       // Use first session
       const first = sessions[0];
-      await db.from("attributions").insert({
+      await supabase.from("attributions").insert({
         event_id: eventId,
         event_type: eventType,
         session_id: first.session_id,
@@ -66,12 +64,12 @@ export async function createMultiModelAttribution(input: AttributionInput) {
       });
     } else if (model === "linear") {
       // Distribute revenue equally across all sessions with campaigns
-      const withCampaign = sessions.filter((s: any) => s.campaign_id);
+      const withCampaign = sessions.filter((s) => s.campaign_id);
       if (withCampaign.length === 0) return;
       const share = Math.round(revenue / withCampaign.length);
 
       for (const s of withCampaign) {
-        await db.from("attributions").insert({
+        await supabase.from("attributions").insert({
           event_id: eventId,
           event_type: eventType,
           session_id: s.session_id,

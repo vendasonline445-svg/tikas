@@ -189,7 +189,8 @@ function getCachedIdentity(): Record<string, string> {
     }
     const { cached_at, ...identity } = data;
     return identity;
-  } catch {
+  } catch (e) {
+    console.warn(DEBUG, "Failed to parse identity cache", e);
     return {};
   }
 }

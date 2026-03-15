@@ -13,10 +13,18 @@
 import { supabase } from "@/integrations/supabase/client";
 import { trackTikTokEvent, identifyTikTokUser, setUserData } from "@/lib/tiktok-tracking";
 import { createMultiModelAttribution } from "@/lib/attribution-engine";
-import type { Json } from "@/integrations/supabase/types";
+import type { Json, Database } from "@/integrations/supabase/types";
+
+type EventInsert = Database["public"]["Tables"]["events"]["Insert"];
 
 const DEBUG = "[TrackingHub]";
-const db = supabase as any;
+
+declare global {
+  interface Window {
+    fiqSiteId?: string;
+    fiqVisitorId?: string;
+  }
+}
 
 // ── Identity cache reader (avoid circular import from tiktok-tracking) ──
 function getCachedIdentity(): Record<string, string> {
@@ -30,7 +38,8 @@ function getCachedIdentity(): Record<string, string> {
     }
     const { cached_at, ...identity } = data;
     return identity;
-  } catch {
+  } catch (e) {
+    console.warn(DEBUG, "Failed to parse identity cache", e);
     return {};
   }
 }
@@ -38,7 +47,7 @@ function getCachedIdentity(): Record<string, string> {
 // ── Site ID helper ─────────────────────────────────────────────────────
 function getSiteId(): string {
   try {
-    return (window as any).fiqSiteId || localStorage.getItem('fiq_site_id') || 'mesa-dobravel';
+    return window.fiqSiteId || localStorage.getItem('fiq_site_id') || 'mesa-dobravel';
   } catch { return 'mesa-dobravel'; }
 }
 
@@ -115,7 +124,7 @@ function generateEventId(): string {
 // ── Visitor / Session context (auto-create if missing) ──────────────────
 function getOrCreateVisitorId(): string {
   try {
-    let id = (window as any).fiqVisitorId
+    let id = window.fiqVisitorId
       || getStorageItem(localStorage, "visitor_id")
       || null;
     if (!id) {
@@ -183,7 +192,7 @@ const MAX_RETRIES = 5;
 const RETRY_INTERVAL_MS = 5000;
 
 interface QueuedEvent {
-  dbPayload: Record<string, any>;
+  dbPayload: EventInsert;
   retries: number;
   critical: boolean;
   eventId: string;
@@ -206,7 +215,7 @@ async function processRetryQueue() {
 
   const remaining: QueuedEvent[] = [];
   for (const item of queue) {
-    const { error } = await db.from("events").insert(item.dbPayload);
+    const { error } = await supabase.from("events").insert(item.dbPayload);
     if (error) {
       item.retries++;
       if (item.retries < MAX_RETRIES || item.critical) {
@@ -230,7 +239,7 @@ if (typeof window !== "undefined") {
 // ── Attribution Engine ──────────────────────────────────────────────────
 async function createAttribution(eventId: string, visitorId: string, sessionId: string, value: number) {
   try {
-    const { data: session } = await db.from("sessions")
+    const { data: session } = await supabase.from("sessions")
       .select("campaign_id, creative_id")
       .eq("session_id", sessionId)
       .maybeSingle();
@@ -240,12 +249,12 @@ async function createAttribution(eventId: string, visitorId: string, sessionId: 
 
     let resolvedCampaignId = campaignId;
     if (!resolvedCampaignId) {
-      const { data: sess } = await db.from("sessions")
+      const { data: sess } = await supabase.from("sessions")
         .select("utm_campaign")
         .eq("session_id", sessionId)
         .maybeSingle();
       if (sess?.utm_campaign) {
-        const { data: camp } = await db.from("campaigns")
+        const { data: camp } = await supabase.from("campaigns")
           .select("id")
           .eq("campaign_name", sess.utm_campaign)
           .maybeSingle();
@@ -253,7 +262,7 @@ async function createAttribution(eventId: string, visitorId: string, sessionId: 
       }
     }
 
-    await db.from("attributions").insert({
+    await supabase.from("attributions").insert({
       event_id: eventId,
       session_id: sessionId,
       campaign_id: resolvedCampaignId,
@@ -318,7 +327,7 @@ export async function trackFunnelEvent(options: TrackOptions) {
   // Enrich with cached identity for EMQ diagnostics
   const identity = getCachedIdentity();
 
-  const eventData: Record<string, any> = {
+  const eventData: Record<string, unknown> = {
     ...properties,
     event_id: eventId,
     is_consistent: isConsistent,
@@ -341,13 +350,13 @@ export async function trackFunnelEvent(options: TrackOptions) {
   };
 
   // 4. Try DB insert with retry queue fallback
-  const { error } = await db.from("events").insert(dbPayload);
+  const { error } = await supabase.from("events").insert(dbPayload);
   if (error) {
     console.warn(`${DEBUG} DB insert failed, queuing for retry: ${eventId}`);
     const queue = loadRetryQueue();
     queue.push({ dbPayload, retries: 0, critical: CRITICAL_EVENTS.has(event), eventId });
     saveRetryQueue(queue);
-    db.from("event_queue").insert({
+    supabase.from("event_queue").insert({
       event_name: event,
       payload: dbPayload as Json,
       status: "pending",
@@ -361,15 +370,17 @@ export async function trackFunnelEvent(options: TrackOptions) {
   if (stage && visitorId) {
     const priority = STAGE_PRIORITY[stage] || 0;
     try {
-      const { data } = await db.from("funnel_state").select("stage").eq("visitor_id", visitorId).maybeSingle();
+      const { data } = await supabase.from("funnel_state").select("stage").eq("visitor_id", visitorId).maybeSingle();
       const currentPriority = data ? (STAGE_PRIORITY[data.stage] || 0) : 0;
       if (priority > currentPriority) {
-        await db.from("funnel_state").upsert(
+        await supabase.from("funnel_state").upsert(
           { visitor_id: visitorId, stage, updated_at: timestamp, site_id: siteId },
           { onConflict: "visitor_id" }
         );
       }
-    } catch {}
+    } catch (e) {
+      console.warn(`${DEBUG} Failed to update funnel_state for visitor ${visitorId}:`, e);
+    }
   }
 
   // 6. Attribution on purchase (multi-model)
